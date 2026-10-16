@@ -1,0 +1,387 @@
+"use strict";
+
+const $ = (selector) => document.querySelector(selector);
+
+const home = $("#home");
+const quiz = $("#quiz");
+const result = $("#result");
+const answersContainer = $("#answers");
+const nextBtn = $("#next-btn");
+const backBtn = $("#back-btn");
+
+const dimensions = {
+  social: {
+    name: "التواصل الاجتماعي",
+    positive: "اجتماعي ومبادر",
+    negative: "هادئ ومتأمل",
+    strength: "التواصل وبناء العلاقات",
+    challenge: "إيجاد التوازن بين التواصل والوقت الشخصي",
+    advice: "حافظ على علاقاتك المهمة، وامنح نفسك وقتًا للتفكير والراحة."
+  },
+  logic: {
+    name: "اتخاذ القرارات",
+    positive: "تحليلي ومنطقي",
+    negative: "متعاطف ويراعي المشاعر",
+    strength: "تحليل المواقف أو فهم مشاعر الآخرين",
+    challenge: "الموازنة بين الحقائق والمشاعر",
+    advice: "اجمع بين التفكير المنطقي ومراعاة تأثير قراراتك على الآخرين."
+  },
+  order: {
+    name: "التنظيم والمرونة",
+    positive: "منظم ويخطط مسبقًا",
+    negative: "مرن ويتكيف مع التغيير",
+    strength: "التخطيط أو التعامل مع المتغيرات",
+    challenge: "الموازنة بين النظام والمرونة",
+    advice: "حدد أهدافك الأساسية، واترك مجالًا لتعديل خطتك عندما تتغير الظروف."
+  },
+  curiosity: {
+    name: "الفضول والاستكشاف",
+    positive: "فضولي ويحب التجربة",
+    negative: "عملي ويفضل المألوف",
+    strength: "اكتشاف الأفكار أو تطبيق الحلول العملية",
+    challenge: "الموازنة بين التجديد والاستفادة من الخبرة",
+    advice: "جرّب أساليب جديدة عندما يكون ذلك مفيدًا، دون إهمال التجارب الناجحة."
+  }
+};
+
+let currentQuestion = 0;
+let userAnswers = [];
+
+function validateQuestions() {
+  if (!Array.isArray(QUESTIONS) || QUESTIONS.length === 0) {
+    throw new Error("لم يتم العثور على الأسئلة في QUESTIONS.");
+  }
+
+  QUESTIONS.forEach((question, index) => {
+    if (
+      !question.text ||
+      !Array.isArray(question.options) ||
+      question.options.length < 2 ||
+      !dimensions[question.trait]
+    ) {
+      throw new Error(`بيانات السؤال ${index + 1} غير صحيحة.`);
+    }
+
+    question.options.forEach((option) => {
+      if (
+        typeof option.text !== "string" ||
+        typeof option.score !== "number" ||
+        !Number.isFinite(option.score) ||
+        option.score < -1 ||
+        option.score > 1
+      ) {
+        throw new Error(`درجات إجابات السؤال ${index + 1} غير صحيحة.`);
+      }
+    });
+  });
+}
+
+function startQuiz() {
+  currentQuestion = 0;
+  userAnswers = Array(QUESTIONS.length).fill(null);
+
+  home.classList.add("hidden");
+  result.classList.add("hidden");
+  quiz.classList.remove("hidden");
+
+  renderQuestion();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function renderQuestion() {
+  const question = QUESTIONS[currentQuestion];
+  const progress = Math.round(
+    ((currentQuestion + 1) / QUESTIONS.length) * 100
+  );
+
+  $("#question-count").textContent =
+    `السؤال ${currentQuestion + 1} من ${QUESTIONS.length}`;
+
+  $("#progress-label").textContent = `${progress}%`;
+  $("#progress-bar").style.width = `${progress}%`;
+  $("#question-title").textContent = question.text;
+
+  answersContainer.replaceChildren();
+
+  question.options.forEach((option, index) => {
+    const button = document.createElement("button");
+
+    button.type = "button";
+    button.className = "answer";
+    button.textContent = option.text;
+    button.setAttribute(
+      "aria-pressed",
+      String(userAnswers[currentQuestion] === index)
+    );
+
+    if (userAnswers[currentQuestion] === index) {
+      button.classList.add("selected");
+    }
+
+    button.addEventListener("click", () => {
+      userAnswers[currentQuestion] = index;
+
+      answersContainer.querySelectorAll(".answer").forEach((answer) => {
+        answer.classList.remove("selected");
+        answer.setAttribute("aria-pressed", "false");
+      });
+
+      button.classList.add("selected");
+      button.setAttribute("aria-pressed", "true");
+      nextBtn.disabled = false;
+    });
+
+    answersContainer.appendChild(button);
+  });
+
+  nextBtn.disabled = userAnswers[currentQuestion] === null;
+
+  nextBtn.textContent =
+    currentQuestion === QUESTIONS.length - 1
+      ? "عرض تحليل شخصيتي ✦"
+      : "السؤال التالي ←";
+
+  backBtn.style.visibility =
+    currentQuestion === 0 ? "hidden" : "visible";
+}
+
+function calculateScores() {
+  const scores = {};
+
+  Object.keys(dimensions).forEach((key) => {
+    scores[key] = {
+      total: 0,
+      count: 0
+    };
+  });
+
+  QUESTIONS.forEach((question, index) => {
+    const answerIndex = userAnswers[index];
+
+    if (answerIndex === null) return;
+
+    const selected = question.options[answerIndex];
+    scores[question.trait].total += selected.score;
+    scores[question.trait].count++;
+  });
+
+  return Object.entries(scores).map(([key, data]) => {
+    const average = data.count > 0
+      ? data.total / data.count
+      : 0;
+
+    return {
+      key,
+      ...dimensions[key],
+      percent: Math.round(((average + 1) / 2) * 100)
+    };
+  });
+}
+
+function getProfile(scores) {
+  const sorted = [...scores].sort(
+    (a, b) =>
+      Math.abs(b.percent - 50) - Math.abs(a.percent - 50)
+  );
+
+  const main = sorted[0];
+  const second = sorted[1];
+
+  let title;
+  let description;
+
+  if (Math.abs(main.percent - 50) < 12) {
+    title = "الشخصية المتوازنة";
+    description =
+      "تشير إجاباتك إلى توازن نسبي بين أساليب التفكير والتعامل. " +
+      "قد تتغير تفضيلاتك حسب الموقف والخبرة والأشخاص المحيطين بك.";
+  } else {
+    title = main.percent >= 50
+      ? main.positive
+      : main.negative;
+
+    description = main.percent >= 50
+      ? `تميل إجاباتك إلى أسلوب ${main.positive}.`
+      : `تميل إجاباتك إلى أسلوب ${main.negative}.`;
+
+    description +=
+      " هذه قراءة استكشافية لتفضيلاتك، وليست وصفًا ثابتًا لكل جوانب شخصيتك.";
+  }
+
+  return { title, description, main, second };
+}
+
+function createTraitRow(item) {
+  const wrapper = document.createElement("div");
+
+  const heading = document.createElement("div");
+  heading.className = "trait-heading";
+
+  const label = document.createElement("span");
+  label.textContent =
+    `${item.name}: ${item.percent >= 50
+      ? item.positive
+      : item.negative}`;
+
+  const value = document.createElement("span");
+  value.textContent = `${item.percent}%`;
+
+  heading.append(label, value);
+
+  const track = document.createElement("div");
+  track.className = "trait-track";
+  track.setAttribute("role", "progressbar");
+  track.setAttribute("aria-valuemin", "0");
+  track.setAttribute("aria-valuemax", "100");
+  track.setAttribute("aria-valuenow", String(item.percent));
+
+  const fill = document.createElement("div");
+  fill.className = "trait-fill";
+  fill.style.width = `${item.percent}%`;
+
+  track.appendChild(fill);
+  wrapper.append(heading, track);
+
+  return wrapper;
+}
+
+function fillOptionalList(selector, items) {
+  const container = $(selector);
+
+  if (!container) return;
+
+  container.replaceChildren();
+
+  items.forEach((text) => {
+    const item = document.createElement("li");
+    item.textContent = text;
+    container.appendChild(item);
+  });
+}
+
+function showResults() {
+  if (userAnswers.some((answer) => answer === null)) return;
+
+  const scores = calculateScores();
+  const profile = getProfile(scores);
+
+  $("#result-title").textContent = profile.title;
+  $("#result-description").textContent = profile.description;
+  $("#result-advice").textContent = profile.main.advice;
+
+  const traitsContainer = $("#traits");
+  traitsContainer.replaceChildren();
+
+  scores.forEach((item) => {
+    traitsContainer.appendChild(createTraitRow(item));
+  });
+
+  const strengths = scores
+    .filter((item) => item.percent >= 65)
+    .map((item) => item.strength);
+
+  const growth = scores
+    .filter((item) => item.percent <= 35)
+    .map((item) => item.challenge);
+
+  fillOptionalList(
+    "#strengths-list",
+    strengths.length
+      ? strengths
+      : ["لاحظ المواقف التي تظهر فيها مهاراتك بصورة أفضل."]
+  );
+
+  fillOptionalList(
+    "#growth-list",
+    growth.length
+      ? growth
+      : ["استمر في تطوير مهاراتك وتجربة أساليب جديدة عند الحاجة."]
+  );
+
+  const secondary = $("#secondary-insight");
+
+  if (secondary) {
+    secondary.textContent = profile.second
+      ? `جانب آخر من شخصيتك: ${
+          profile.second.percent >= 50
+            ? profile.second.positive
+            : profile.second.negative
+        }.`
+      : "";
+  }
+
+  quiz.classList.add("hidden");
+  result.classList.remove("hidden");
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function goNext() {
+  if (userAnswers[currentQuestion] === null) return;
+
+  if (currentQuestion < QUESTIONS.length - 1) {
+    currentQuestion++;
+    renderQuestion();
+  } else {
+    showResults();
+  }
+}
+
+function goBack() {
+  if (currentQuestion > 0) {
+    currentQuestion--;
+    renderQuestion();
+  }
+}
+
+function restartQuiz() {
+  currentQuestion = 0;
+  userAnswers = [];
+
+  result.classList.add("hidden");
+  quiz.classList.add("hidden");
+  home.classList.remove("hidden");
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+async function shareResults() {
+  const text = [
+    `نتيجة تحليل شخصيتي: ${$("#result-title").textContent}`,
+    $("#result-description").textContent,
+    `نصيحة: ${$("#result-advice").textContent}`,
+    "",
+    "هذا الاختبار استكشافي وليس تشخيصًا نفسيًا."
+  ].join("\n");
+
+  try {
+    if (navigator.share) {
+      await navigator.share({
+        title: "تحليل شخصيتي",
+        text
+      });
+    } else if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      alert("تم نسخ النتيجة بنجاح.");
+    } else {
+      window.prompt("انسخ نتيجتك:", text);
+    }
+  } catch (error) {
+    if (error.name !== "AbortError") {
+      window.prompt("يمكنك نسخ نتيجتك:", text);
+    }
+  }
+}
+
+$("#start-btn").addEventListener("click", startQuiz);
+nextBtn.addEventListener("click", goNext);
+backBtn.addEventListener("click", goBack);
+$("#restart-btn").addEventListener("click", restartQuiz);
+
+const shareButton = $("#share-btn");
+
+if (shareButton) {
+  shareButton.addEventListener("click", shareResults);
+}
+
+validateQuestions();

@@ -1,0 +1,82 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="اكتشف جوانب شخصيتك من خلال اختبار تفاعلي.">
+  <title>بصمة | اكتشف شخصيتك</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="navbar">
+    <a class="logo" href="#">بصمة<span>.</span></a>
+    <span class="nav-label">رحلتك نحو اكتشاف ذاتك</span>
+  </header>
+
+  <main class="container">
+    <section id="home" class="hero">
+      <div class="eyebrow">✦ رحلة اكتشاف الذات</div>
+      <h1>اكتشف ما يجعل<br> <span>شخصيتك فريدة</span></h1>
+      <p>
+        أجب عن مجموعة من الأسئلة حول طريقة تفكيرك وتعاملك
+        مع الآخرين، واكتشف نقاط قوتك وميولك الشخصية.
+      </p>
+      <div class="features">
+        <div>🧠 تحليل تفاعلي</div>
+        <div>⏱️ حوالي 3 دقائق</div>
+        <div>🔒 دون إنشاء حساب</div>
+      </div>
+      <button id="start-btn" class="primary-btn">
+        ابدأ اختبار الشخصية ←
+      </button>
+      <p class="disclaimer">
+        هذا الاختبار للاستكشاف الشخصي والتسلية، وليس تشخيصًا نفسيًا.
+      </p>
+    </section>
+
+    <section id="quiz" class="panel hidden">
+      <div class="quiz-top">
+        <span id="question-count">السؤال 1</span>
+        <span id="progress-label">0%</span>
+      </div>
+      <div class="progress-track">
+        <div id="progress-bar"></div>
+      </div>
+      <h2 id="question-title"></h2>
+      <p class="hint">اختر الإجابة الأقرب إلى طبيعتك.</p>
+      <div id="answers" class="answers"></div>
+      <button id="next-btn" class="primary-btn" disabled>
+        السؤال التالي ←
+      </button>
+      <button id="back-btn" class="back-btn">السؤال السابق</button>
+    </section>
+
+    <section id="result" class="panel hidden">
+      <div class="eyebrow">✦ اكتملت رحلتك</div>
+      <p class="result-intro">النتيجة التقريبية لاختبارك</p>
+      <h2 id="result-title"></h2>
+      <p id="result-description" class="result-description"></p>
+      <div id="traits" class="traits"></div>
+      <div class="insight">
+        <h3>💡 نصيحة لك</h3>
+        <p id="result-advice"></p>
+      </div>
+      <p class="disclaimer">
+        هذا التحليل مبني على إجاباتك ضمن اختبار مبسط،
+        ولا يمثل تقييمًا نفسيًا معتمدًا.
+      </p>
+      <button id="restart-btn" class="primary-btn">
+        أعد الاختبار ↻
+      </button>
+    </section>
+  </main>
+
+  <footer>
+    <p>بصمة © 2026 — اكتشف نفسك، وافهم اختياراتك.</p>
+  </footer>
+
+  <script src="js/questions.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
